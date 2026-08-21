@@ -13,7 +13,7 @@ USE SCHEMA AGENT;
 -- This simulates what Snowflake Cortex Agents do internally
 -- ============================================================
 
--- AGENT CALL 1: Question needs SQL tool (structured data)
+-- AGENT DECISION 1: Structured-data question
 -- "What is the total revenue by region?"
 SELECT SNOWFLAKE.CORTEX.COMPLETE(
     'mistral-large',
@@ -38,7 +38,7 @@ SELECT SNOWFLAKE.CORTEX.COMPLETE(
 ) AS agent_reasoning_q1;
 
 
--- AGENT CALL 2: Question needs Search tool (unstructured docs)
+-- AGENT DECISION 2: Unstructured-data question
 -- "What does market research say about electronics growth?"
 SELECT SNOWFLAKE.CORTEX.COMPLETE(
     'mistral-large',
@@ -59,7 +59,7 @@ SELECT SNOWFLAKE.CORTEX.COMPLETE(
 ) AS agent_reasoning_q2;
 
 
--- AGENT CALL 3: Multi-tool question — needs BOTH tools + calculator
+-- AGENT DECISION 3: Multi-tool business question
 SELECT SNOWFLAKE.CORTEX.COMPLETE(
     'mistral-large',
     $$
@@ -68,13 +68,19 @@ SELECT SNOWFLAKE.CORTEX.COMPLETE(
     - tool_search_reports: market document search
     - tool_calculate_metrics: profit and ROI calculator
 
-    User question: "Who is my top salesperson, what is their profit margin, and how does their region compare to market benchmarks?"
+   User question: "Who is my top salesperson,
+what is their profit margin, and how does their
+region compare to market benchmarks?"
 
-    This requires multiple tools. Show your complete reasoning chain:
-    STEP 1 - Tool: | Query/Search:
-    STEP 2 - Tool: | Query/Search:
-    STEP 3 - Tool: | Query/Search:
-    FINAL SYNTHESIS: How you combine outputs into one answer.
+This requires multiple tools.
+
+Provide a concise decision trace:
+
+    STEP 1 - Tool selected and purpose
+    STEP 2 - Tool selected and purpose
+    STEP 3 - Tool selected and purpose
+    FINAL SYNTHESIS: Explain how the tool outputs
+    would be combined into one business answer.
     $$
 ) AS agent_reasoning_q3;
 
@@ -124,7 +130,7 @@ SELECT SNOWFLAKE.CORTEX.SEARCH_PREVIEW(
 -- ============================================================
 
 INSERT INTO agent_action_log
-    (session_id, user_question, tool_used, tool_input, final_answer)
+    (session_id, user_question, tool_used, tool_input, final_answer, success)
 SELECT
     'session_001',
     'Which region generated highest revenue?',
@@ -133,7 +139,7 @@ SELECT
     'North region: ₹4,58,500 revenue, 34.7% profit margin — highest of all regions';
 
 INSERT INTO agent_action_log
-    (session_id, user_question, tool_used, tool_input, final_answer)
+    (session_id, user_question, tool_used, tool_input, final_answer, success)
 SELECT
     'session_002',
     'What is market outlook for electronics?',
@@ -150,4 +156,75 @@ SELECT
     final_answer
 FROM agent_action_log
 ORDER BY timestamp DESC;
+-- ============================================
+-- END-TO-END AGENT WORKFLOW
+-- ============================================
+
+-- Example business question
+SET user_question =
+'Which region generated the highest revenue and what is its profit margin?';
+
+-- Step 1: Query structured sales data
+SELECT
+    region,
+    SUM(revenue) AS total_revenue,
+    SUM(cost) AS total_cost,
+    SUM(revenue) - SUM(cost) AS gross_profit,
+    ROUND(
+        (SUM(revenue) - SUM(cost)) /
+        NULLIF(SUM(revenue), 0) * 100,
+        2
+    ) AS profit_margin_pct
+FROM BI_AGENT_DB.RAW.sales_data
+GROUP BY region
+ORDER BY total_revenue DESC
+LIMIT 1;
+-- ============================================
+-- MULTI-TOOL BUSINESS QUESTION
+-- ============================================
+
+-- Step 1: Identify the top salesperson
+WITH salesperson_performance AS (
+    SELECT
+        salesperson,
+        region,
+        SUM(revenue) AS total_revenue,
+        SUM(revenue - cost) AS total_profit,
+        ROUND(
+            SUM(revenue - cost) /
+            NULLIF(SUM(revenue), 0) * 100,
+            2
+        ) AS profit_margin_pct
+    FROM BI_AGENT_DB.RAW.sales_data
+    GROUP BY salesperson, region
+)
+
+SELECT *
+FROM salesperson_performance
+ORDER BY total_revenue DESC
+LIMIT 1;
+-- Step 2: Retrieve the relevant market benchmark
+
+SELECT SNOWFLAKE.CORTEX.SEARCH_PREVIEW(
+    'BI_AGENT_DB.DOCS.market_report_search',
+    '{
+        "query": "salesperson performance benchmarks India North region",
+        "columns": ["report_title", "content"],
+        "limit": 2
+    }'
+) AS market_context;
+-- ============================================
+-- AGENT EVALUATION
+-- ============================================
+
+SELECT
+    COUNT(*) AS total_agent_actions,
+    SUM(CASE WHEN success THEN 1 ELSE 0 END) AS successful_actions,
+    ROUND(
+        SUM(CASE WHEN success THEN 1 ELSE 0 END)
+        / NULLIF(COUNT(*), 0) * 100,
+        1
+    ) AS success_rate_pct
+FROM agent_action_log;
+
 
