@@ -11,9 +11,14 @@ USE WAREHOUSE AGENT_WH;
 USE SCHEMA AGENT;
 
 -- ============================================================
--- TOOL 1: SQL Query Tool
--- Agent calls this when question needs structured data
+-- TOOL 1: STRUCTURED DATA QUERY TOOL
+-- Converts a business question into SQL using Cortex
+-- and executes the generated query against sales_data.
+-- In a production system, generated SQL should also
+-- pass validation/allow-list checks before execution.
 -- ============================================================
+-- Allowed source table for generated queries
+-- The tool is intentionally restricted to sales_data.
 
 CREATE OR REPLACE FUNCTION tool_query_sales(question VARCHAR)
 RETURNS TABLE (result VARIANT)
