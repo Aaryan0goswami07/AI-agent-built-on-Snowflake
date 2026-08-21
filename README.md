@@ -1,13 +1,41 @@
 # Business Intelligence AI Agent
 ### Built with Snowflake Cortex Agents, Tool Calling, and Agentic Orchestration
 
-An autonomous BI agent that decides which tools to use, queries structured sales data and unstructured market reports, calculates business metrics, and synthesises multi-source answers — without being told what to do step by step.
+An autonomous Business Intelligence agent built on Snowflake that routes business questions across structured sales data, unstructured market reports, and metric calculations.
+
+The system demonstrates agentic tool selection, multi-tool orchestration, Cortex Search, SQL execution, Python-based metric calculation, and agent observability.
 
 Built after completing **Building AI Agents with Snowflake** (Course 4, Snowflake GenAI Specialization, Coursera).
 
 ---
 
 ## What makes this an agent (not just a chatbot)
+
+## Architecture
+
+```text
+                    Business Question
+                           |
+                           v
+                 +--------------------+
+                 |   Agent / Router   |
+                 | Cortex LLM         |
+                 +---------+----------+
+                           |
+          +----------------+----------------+
+          |                |                |
+          v                v                v
+   SQL Query Tool    Cortex Search     Metric Calculator
+   Structured Data   Market Reports     Profit / ROI
+          |                |                |
+          +----------------+----------------+
+                           |
+                           v
+                    Business Insight
+                           |
+                           v
+                  Agent Action Log
+                    (Observability)
 
 A chatbot answers one question using one source. An agent:
 - **Reasons** about what tools it needs
@@ -74,6 +102,18 @@ bi-agent-snowflake/
 ```
 
 ---
+## Technical Highlights
+
+- Snowflake SQL
+- Snowflake Cortex LLM functions
+- Cortex Search
+- Python UDFs
+- Tool calling
+- Agentic routing
+- Structured + unstructured data retrieval
+- Multi-tool orchestration
+- Observability and action logging
+- Business metric calculation
 
 ## How to run
 
