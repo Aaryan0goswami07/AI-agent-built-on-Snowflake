@@ -50,8 +50,9 @@ CREATE OR REPLACE TABLE agent_action_log (
     session_id      VARCHAR(50),
     timestamp       TIMESTAMP DEFAULT CURRENT_TIMESTAMP(),
     user_question   TEXT,
-    tool_used       VARCHAR(50),
+    tool_used       VARCHAR(100),
     tool_input      TEXT,
     tool_output     TEXT,
-    final_answer    TEXT
+    final_answer    TEXT,
+    success         BOOLEAN DEFAULT TRUE
 );
