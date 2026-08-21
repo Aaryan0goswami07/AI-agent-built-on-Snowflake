@@ -3,7 +3,7 @@
 -- Snowflake Cortex Agents + Tool Calling + Orchestration
 -- By Aaryan Goswami
 -- Concepts: AI agents, tool calling, agentic workflows,
---           MCP, orchestration, prompt engineering,
+--            orchestration, prompt engineering,
 --           structured + unstructured data, observability
 -- ============================================================
 
